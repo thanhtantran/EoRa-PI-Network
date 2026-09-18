@@ -80,6 +80,18 @@ class FirmwareContractTests(unittest.TestCase):
         self.assertIn('packet["data"].to<JsonObject>()', source)
         self.assertNotIn("createNestedObject(\"data\")", source)
 
+    def test_node_has_usb_debug_and_wake_only_oled_status(self) -> None:
+        source = self.read(NODE / "EoRa_Node_Transmitter.ino")
+        self.assertIn("#define DEBUG 1", source)
+        self.assertIn("#include <U8g2lib.h>", source)
+        self.assertIn("Wire.begin(OLED_SDA_PIN, OLED_SCL_PIN)", source)
+        self.assertIn("showStatus", source)
+        self.assertIn('showStatus("TX")', source)
+        self.assertIn('showStatus("ACK")', source)
+        self.assertIn('showStatus("CMD")', source)
+        self.assertIn('showStatus("TIMEOUT")', source)
+        self.assertIn("display.setPowerSave(1)", source)
+
 
 if __name__ == "__main__":
     unittest.main()
