@@ -34,7 +34,7 @@ The gateway must remain USB-powered. Connect its USB serial device (for example 
 
 ## Transmitter operation
 
-By default, the node sleeps for **300 seconds (5 minutes)**. Each timer wake restarts the firmware from `setup()` and performs the following steps:
+By default, the node sleeps for **300 seconds (5 minutes)**. Each wake cycle remains awake for at least **20 seconds**; when Arduino IDE USB CDC is enabled, the node can wait up to **10 seconds** for Serial Monitor to connect. Each timer wake restarts the firmware from `setup()` and performs the following steps:
 
 1. Enable USB Serial DEBUG and disable Wi-Fi and Bluetooth.
 2. Turn on the OLED and show `WAKE`.
@@ -48,6 +48,8 @@ By default, the node sleeps for **300 seconds (5 minutes)**. Each timer wake res
 ### USB Serial DEBUG
 
 `DEBUG` is enabled by default in `EoRa_Node_Transmitter.ino`. Open Serial Monitor at **115200 baud** to view boot/wake reason, radio initialization, battery, sequence, TX state, ACK/CMD/timeout, and the next deep-sleep transition.
+
+For the ESP32-S3 native USB port, select **Tools → USB CDC On Boot → Enabled** in Arduino IDE before building/flashing. The previous build log used `CDCOnBoot=default` and `ARDUINO_USB_CDC_ON_BOOT=0`, so `Serial` could not appear on native USB even with `DEBUG=1`. Firmware waits for Serial Monitor for at most 10 seconds and never blocks indefinitely.
 
 Example:
 

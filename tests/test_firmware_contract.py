@@ -92,6 +92,15 @@ class FirmwareContractTests(unittest.TestCase):
         self.assertIn('showStatus("TIMEOUT")', source)
         self.assertIn("display.setPowerSave(1)", source)
 
+    def test_node_has_bounded_serial_wait_and_minimum_awake_time(self) -> None:
+        source = self.read(NODE / "EoRa_Node_Transmitter.ino")
+        self.assertIn("SERIAL_CONNECT_TIMEOUT_MS", source)
+        self.assertIn("MINIMUM_AWAKE_MS", source)
+        self.assertIn("waitForSerialConnection", source)
+        self.assertIn("holdAwakeUntilMinimum", source)
+        self.assertIn("holdAwakeUntilMinimum(wakeStartedAt);", source)
+        self.assertNotIn("while (!Serial) {}", source)
+
 
 if __name__ == "__main__":
     unittest.main()

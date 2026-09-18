@@ -17,6 +17,8 @@
 constexpr char NODE_ID[] = "sensor-01";  // Change uniquely for each deployed node.
 constexpr uint64_t DEFAULT_SLEEP_SECONDS = 300;
 constexpr uint32_t DOWNLINK_WINDOW_MS = 5000;
+constexpr uint32_t SERIAL_CONNECT_TIMEOUT_MS = 10000;
+constexpr uint32_t MINIMUM_AWAKE_MS = 20000;
 constexpr uint8_t MAX_UPLINK_ATTEMPTS = 3;
 constexpr uint8_t BAT_ADC_PIN = 1;
 constexpr uint8_t OLED_SDA_PIN = 18;
@@ -40,6 +42,24 @@ void debugf(const char* format, ...) {
 #else
   (void)format;
 #endif
+}
+
+void waitForSerialConnection() {
+#if DEBUG && ARDUINO_USB_CDC_ON_BOOT
+  const uint32_t deadline = millis() + SERIAL_CONNECT_TIMEOUT_MS;
+  while (!Serial && static_cast<int32_t>(deadline - millis()) > 0) {
+    delay(10);
+  }
+#endif
+}
+
+void holdAwakeUntilMinimum(uint32_t wakeStartedAt) {
+  const uint32_t elapsed = millis() - wakeStartedAt;
+  if (elapsed < MINIMUM_AWAKE_MS) {
+    const uint32_t remaining = MINIMUM_AWAKE_MS - elapsed;
+    debugf("Holding awake for %lu ms\n", static_cast<unsigned long>(remaining));
+    delay(remaining);
+  }
 }
 
 void enableSensorPower() {
@@ -150,9 +170,10 @@ DownlinkStatus listenForDownlink() {
 }
 
 void setup() {
+  const uint32_t wakeStartedAt = millis();
 #if DEBUG
   Serial.begin(115200);
-  delay(100);
+  waitForSerialConnection();
   Serial.printf("\nEoRa node boot; wake cause=%d\n", esp_sleep_get_wakeup_cause());
 #endif
   randomSeed(esp_random());
@@ -164,7 +185,8 @@ void setup() {
   if (beginRadio(radio) != RADIOLIB_ERR_NONE) {
     debugf("Radio initialization failed\n");
     showStatus("RADIO ERROR");
-    delay(1000);
+    holdAwakeUntilMinimum(wakeStartedAt);
+    Serial.flush();
     enterDeepSleep();
   }
   debugf("Radio ready: 920.250 MHz, 62.5 kHz, SF8, CR 4/5, 22 dBm\n");
@@ -192,9 +214,9 @@ void setup() {
       case DownlinkStatus::Timeout: showStatus("TIMEOUT"); break;
       case DownlinkStatus::ReceiveError: showStatus("RX ERROR"); break;
     }
-    delay(1000);
   }
   debugf("Entering deep sleep for %lu seconds\n", static_cast<unsigned long>(sleepSeconds));
+  holdAwakeUntilMinimum(wakeStartedAt);
   Serial.flush();
   enterDeepSleep();
 }

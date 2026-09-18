@@ -34,7 +34,7 @@ Gateway phải luôn được cấp nguồn qua USB. Kết nối thiết bị se
 
 ## Hoạt động của Transmitter
 
-Mặc định node ngủ **300 giây (5 phút)**. Khi timer wake, firmware chạy lại từ `setup()` và thực hiện:
+Mặc định node ngủ **300 giây (5 phút)**. Mỗi chu kỳ wake được giữ awake tối thiểu **20 giây**; khi Arduino IDE bật USB CDC, node có thể chờ tối đa **10 giây** để Serial Monitor kết nối. Khi timer wake, firmware chạy lại từ `setup()` và thực hiện:
 
 1. Bật USB Serial DEBUG, tắt Wi‑Fi và Bluetooth.
 2. Bật OLED, hiển thị `WAKE`.
@@ -48,6 +48,8 @@ Mặc định node ngủ **300 giây (5 phút)**. Khi timer wake, firmware chạ
 ### DEBUG qua USB Serial
 
 `DEBUG` được bật mặc định trong `EoRa_Node_Transmitter.ino`. Mở Serial Monitor ở **115200 baud** để xem boot/wake reason, radio init, battery, sequence, trạng thái TX, ACK/CMD/timeout và thời điểm deep sleep.
+
+Với native USB của ESP32-S3, trong Arduino IDE phải chọn **Tools → USB CDC On Boot → Enabled** trước khi build/flash. Log build trước đó dùng `CDCOnBoot=default` và `ARDUINO_USB_CDC_ON_BOOT=0`, nên `Serial` không xuất qua native USB dù `DEBUG=1`. Firmware chỉ chờ Serial Monitor tối đa 10 giây, không treo vô hạn.
 
 Ví dụ:
 
