@@ -46,7 +46,7 @@ void displayOff() {
   // TODO: power down the optional OLED after the short awake status page.
 }
 
-bool readSensors(JsonDocument& data) {
+bool readSensors(JsonObject data) {
   const uint16_t raw = analogRead(BAT_ADC_PIN);
   if (raw == 0) {
     data["battery_error"] = "adc_read_failed";
@@ -65,7 +65,7 @@ void enterDeepSleep() {
   esp_deep_sleep_start();
 }
 
-bool transmitUplink(const String& uplink) {
+bool transmitUplink(String& uplink) {
   for (uint8_t attempt = 0; attempt < MAX_UPLINK_ATTEMPTS; ++attempt) {
     if (radio.transmit(uplink) == RADIOLIB_ERR_NONE) return true;
     delay(random(100, 501));
@@ -89,7 +89,7 @@ void listenForDownlink() {
     String frame;
     const int state = radio.receive(frame, 100);
     if (state != RADIOLIB_ERR_NONE) continue;
-    StaticJsonDocument<256> packet;
+    JsonDocument packet;
     if (deserializeJson(packet, frame) != DeserializationError::Ok ||
         !isMatchingDownlink(packet, NODE_ID, sequence)) continue;
     if (strcmp(packet["type"] | "", "cmd") == 0) applyCommand(packet);
@@ -110,13 +110,13 @@ void setup() {
 
   delay(random(0, 10001));  // Collision-reduction wake jitter.
   ++sequence;
-  StaticJsonDocument<256> packet;
+  JsonDocument packet;
   packet["v"] = PROTOCOL_VERSION;
   packet["type"] = "uplink";
   packet["id"] = NODE_ID;
   packet["seq"] = sequence;
   packet["rx_window_ms"] = DOWNLINK_WINDOW_MS;
-  readSensors(packet.createNestedObject("data"));
+  readSensors(packet["data"].to<JsonObject>());
   String uplink;
   serializeJson(packet, uplink);
   if (uplink.length() <= MAX_LORA_FRAME_BYTES && transmitUplink(uplink)) listenForDownlink();

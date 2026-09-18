@@ -73,6 +73,13 @@ class FirmwareContractTests(unittest.TestCase):
             self.assertIn("isSupportedCommand", source)
             self.assertIn("isMatchingDownlink", source)
 
+    def test_node_uses_radiolib_and_arduinojson_7_compatible_arguments(self) -> None:
+        source = self.read(NODE / "EoRa_Node_Transmitter.ino")
+        self.assertIn("bool transmitUplink(String& uplink)", source)
+        self.assertIn("bool readSensors(JsonObject data)", source)
+        self.assertIn('packet["data"].to<JsonObject>()', source)
+        self.assertNotIn("createNestedObject(\"data\")", source)
+
 
 if __name__ == "__main__":
     unittest.main()
