@@ -101,6 +101,27 @@ class FirmwareContractTests(unittest.TestCase):
         self.assertIn("holdAwakeUntilMinimum(wakeStartedAt);", source)
         self.assertNotIn("while (!Serial) {}", source)
 
+    def test_node_logs_wake_events_to_sd_card(self) -> None:
+        source = self.read(NODE / "EoRa_Node_Transmitter.ino")
+        self.assertIn("#include <SD.h>", source)
+        self.assertIn("SDCARD_MOSI_PIN = 11", source)
+        self.assertIn("SDCARD_MISO_PIN = 2", source)
+        self.assertIn("SDCARD_SCLK_PIN = 14", source)
+        self.assertIn("SDCARD_CS_PIN = 13", source)
+        self.assertIn('WAKE_LOG_PATH[] = "/wake_log.csv"', source)
+        self.assertIn("initSdCard", source)
+        self.assertIn("logWakeEvent", source)
+        self.assertIn('logWakeEvent("wake"', source)
+        self.assertIn('logWakeEvent("tx_success"', source)
+        self.assertIn('logWakeEvent("tx_failed"', source)
+        self.assertIn('logWakeEvent("downlink_ack"', source)
+        self.assertIn('logWakeEvent("downlink_command"', source)
+        self.assertIn('logWakeEvent("downlink_timeout"', source)
+        self.assertIn("SD write success", source)
+        self.assertIn("SD log summary", source)
+        self.assertNotIn("ESTIMATED_AVERAGE_CURRENT_MA", source)
+        self.assertNotIn("battery_hours_remaining", source)
+
 
 if __name__ == "__main__":
     unittest.main()

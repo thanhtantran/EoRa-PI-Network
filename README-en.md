@@ -2,7 +2,7 @@
 
 [🇻🇳 Tiếng Việt](README.md) · [🇬🇧 English](README-en.md)
 
-Firmware for a battery-powered EoRa-S3-900TB sensor node and a USB-connected EoRa-S3-900TB Orange Pi gateway. It is a private point-to-multipoint LoRa network: no mesh, LoRaWAN, cloud, or Home Assistant dependency.
+Firmware for a battery-powered EoRa-S3-900TB sensor node and a USB-connected EoRa-S3-900TB Orange Pi gateway. It is a private point-to-multipoint LoRa network: no mesh, LoRaWAN or any cloud, all data are private.
 
 ## Firmware roles
 
@@ -71,6 +71,34 @@ The SSD1306 OLED uses I²C on SDA GPIO 18 and SCL GPIO 17. It is enabled only wh
 The final ACK/CMD/TIMEOUT/RX ERROR status remains visible for roughly one second. Before deep sleep, firmware clears the framebuffer and calls `display.setPowerSave(1)`.
 
 > The current battery estimate is a GPIO 1 sample formula. Calibrate it to the actual battery divider before treating it as an accurate measurement.
+
+## Transmitter microSD logging
+
+The Transmitter can record each wake cycle to `/wake_log.csv` on a **FAT32-formatted microSD/TF card**. Pin mapping comes from the legacy firmware and must be validated with a physical card: MOSI GPIO 11, MISO GPIO 2, SCLK GPIO 14, and CS GPIO 13. The node uses a dedicated `HSPI` bus for the card and does not share the SX1262 SPI bus.
+
+If no card is inserted, the card is not formatted, mounting fails, or the log file cannot be created, firmware writes `SD card initialization failed`/the relevant error to DEBUG and still completes the LoRa cycle. An SD failure never causes early deep sleep.
+
+Each row contains:
+
+```text
+sequence,awake_ms,event,battery_mv,detail
+```
+
+Recorded events include: `wake`, `radio_init_failed`, `sensor_read`, `tx_success`, `tx_attempt_failed`, `tx_failed`, `downlink_ack`, `downlink_command`, `downlink_timeout`, `downlink_rx_error`, `command_applied`, `uplink_too_long`, and `deep_sleep`.
+
+Example:
+
+```text
+12,0,"wake","","wake_cause=4"
+12,8421,"sensor_read","3982","battery_mv=3982"
+12,9015,"tx_success","3982","attempt=1;bytes=104"
+12,14037,"downlink_timeout","3982",""
+12,20002,"deep_sleep","3982","sleep_seconds=300"
+```
+
+`awake_ms` is time elapsed since the current boot/wake, not wall-clock time: the node does not synchronize NTP or enable Wi-Fi for time. `battery_mv` is the battery voltage sampled at the event time; calibrate the ADC formula to the actual battery divider before treating it as accurate.
+
+On every cycle, DEBUG prints `SD init success` or `SD init failed`, then `SD write success`/`SD write failed` for each event, followed by `SD log summary` before deep sleep. Use these lines to verify that the card was mounted and records were actually written.
 
 ## Gateway serial protocol
 

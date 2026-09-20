@@ -13,7 +13,9 @@ In `EoRa_Node_Transmitter.ino`:
 | `DOWNLINK_WINDOW_MS` | `5000` | Post-uplink awake listening window. |
 | `MAX_UPLINK_ATTEMPTS` | `3` | Initial transmit plus at most two retries. |
 | `BAT_ADC_PIN` | `1` | Battery measurement ADC input. |
-| `DEBUG` | `0` | Set to `1` only to enable node USB diagnostic output. |
+| `SDCARD_MOSI_PIN` / `SDCARD_MISO_PIN` / `SDCARD_SCLK_PIN` / `SDCARD_CS_PIN` | `11` / `2` / `14` / `13` | microSD/TF HSPI mapping retained from legacy firmware; validate with a physical FAT32 card. |
+| `WAKE_LOG_PATH` | `/wake_log.csv` | Append-only CSV file containing wake, TX, downlink, command, deep-sleep events, and the `battery_mv` sample. |
+| `DEBUG` | `1` | Set to `0` only to disable node USB diagnostic output; when enabled it reports SD mount/write status for every wake cycle. |
 
 `set_interval` replaces `sleepSeconds` in RTC RAM. It survives deep-sleep resets, but not full power loss. The default `readSensors()` reads only a battery estimate; calibrate its divider formula and add real sensor logic at the marked TODOs. Do not fabricate sensor readings after failure: add an explicit error field or omit that field.
 

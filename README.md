@@ -2,7 +2,7 @@
 
 [🇻🇳 Tiếng Việt](README.md) · [🇬🇧 English](README-en.md)
 
-Firmware cho node cảm biến EoRa-S3-900TB dùng pin và gateway EoRa-S3-900TB kết nối Orange Pi qua USB. Đây là mạng LoRa riêng theo mô hình một-đến-nhiều; không sử dụng mesh, LoRaWAN, dịch vụ đám mây hoặc Home Assistant.
+Firmware cho node cảm biến EoRa-S3-900TB dùng pin và gateway EoRa-S3-900TB kết nối Orange Pi qua USB. Đây là mạng LoRa riêng theo mô hình một-đến-nhiều; không sử dụng mesh, LoRaWAN, hay bất cứ dịch vụ đám mây nào, tất cả dữ liệu đều bảo mật.
 
 ## Vai trò firmware
 
@@ -13,7 +13,9 @@ Chân SX1262 của EoRa-S3-900TB là cố định: SCLK 5, MISO 3, MOSI 6, CS 7,
 
 ## Profile radio: Vietnam (Narrow)
 
-Mọi thiết bị phải được nạp cùng profile cố định: **920.250 MHz, 62.5 kHz, SF8, CR 4/5, private SX126x sync word, 22 dBm, preamble 16**. Private sync word chỉ dùng để phân tách gói tin, **không phải mã hóa**. Trước khi phát RF, hãy xác nhận mức 22 dBm cùng hệ thống antenna/cáp tuân thủ giới hạn công suất dẫn và ERP áp dụng tại Việt Nam.
+Mọi thiết bị phải được nạp cùng profile cố định: **920.250 MHz, 62.5 kHz, SF8, CR 4/5, private SX126x sync word, 22 dBm, preamble 16**. Private sync word chỉ dùng để phân tách gói tin, **không phải mã hóa**. Nếu cần mã hóa, sẽ mã hóa theo các giao thứ mã hóa mới như SHA256
+
+Trước khi phát RF, hãy xác nhận mức 22 dBm cùng hệ thống antenna/cáp tuân thủ giới hạn công suất dẫn và ERP áp dụng tại Việt Nam.
 
 ## Build và nạp firmware
 
@@ -71,6 +73,34 @@ OLED SSD1306 sử dụng I²C với SDA GPIO 18 và SCL GPIO 17. OLED chỉ bậ
 Trạng thái cuối ACK/CMD/TIMEOUT/RX ERROR được giữ khoảng một giây để quan sát. Trước deep sleep, firmware xóa framebuffer và gọi `display.setPowerSave(1)`.
 
 > Battery estimate hiện dùng công thức mẫu cho GPIO 1. Cần hiệu chuẩn theo mạch chia áp/battery thực tế trước khi dùng giá trị này làm số liệu đo chính xác.
+
+## Nhật ký microSD của Transmitter
+
+Transmitter hỗ trợ ghi nhật ký chu kỳ wake vào `/wake_log.csv` trên thẻ **microSD/TF định dạng FAT32**. Mapping được lấy từ firmware legacy và cần được kiểm tra với thẻ vật lý: MOSI GPIO 11, MISO GPIO 2, SCLK GPIO 14, CS GPIO 13. Node dùng `HSPI` riêng cho thẻ, không dùng chung SPI của SX1262.
+
+Nếu không có thẻ, thẻ chưa được format, mount lỗi hoặc không tạo được file, firmware ghi `SD card initialization failed`/lỗi tương ứng qua DEBUG và vẫn tiếp tục chu trình LoRa; nó không deep sleep sớm chỉ vì SD lỗi.
+
+Mỗi row gồm:
+
+```text
+sequence,awake_ms,event,battery_mv,detail
+```
+
+Các event được ghi gồm: `wake`, `radio_init_failed`, `sensor_read`, `tx_success`, `tx_attempt_failed`, `tx_failed`, `downlink_ack`, `downlink_command`, `downlink_timeout`, `downlink_rx_error`, `command_applied`, `uplink_too_long`, và `deep_sleep`.
+
+Ví dụ:
+
+```text
+12,0,"wake","","wake_cause=4"
+12,8421,"sensor_read","3982","battery_mv=3982"
+12,9015,"tx_success","3982","attempt=1;bytes=104"
+12,14037,"downlink_timeout","3982",""
+12,20002,"deep_sleep","3982","sleep_seconds=300"
+```
+
+`awake_ms` là thời gian kể từ boot/wake hiện tại, không phải thời gian lịch thực: node không đồng bộ NTP và không bật Wi‑Fi để lấy thời gian. `battery_mv` chỉ là điện áp battery được đọc tại thời điểm event; cần hiệu chuẩn công thức ADC theo mạch chia áp/battery thực tế trước khi dùng làm số liệu chính xác.
+
+Mỗi chu kỳ, DEBUG sẽ in `SD init success` hoặc `SD init failed`, `SD write success`/`SD write failed` theo từng event, sau đó `SD log summary` trước deep sleep. Dùng các dòng này để xác nhận thẻ thực sự đã mount và ghi được log.
 
 ## Giao thức Serial Gateway
 
