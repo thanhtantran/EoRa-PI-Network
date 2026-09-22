@@ -24,7 +24,7 @@
 
 ## 2. Đường cong điện áp toàn bộ log
 
-![Đường cong điện áp toàn bộ](images/chart1_full_curve.png)
+![Đường cong điện áp toàn bộ](chart1_full_curve.png)
 
 Đường cong thể hiện rõ dạng điển hình của pin Li-ion/LiPo 1 cell:
 
@@ -36,7 +36,7 @@
 
 ## 3. Tốc độ sụt áp theo từng khoảng 50 chu kỳ
 
-![Tốc độ sụt áp theo khoảng](images/chart2_windowed_rate.png)
+![Tốc độ sụt áp theo khoảng](chart2_windowed_rate.png)
 
 | Khoảng seq | V đầu (mV) | V cuối (mV) | Sụt (mV) | Tốc độ (mV/chu kỳ) |
 |---|---|---|---|---|
@@ -63,7 +63,7 @@
 
 ## 4. Mô hình dự đoán & vùng "knee"
 
-![Knee extrapolation](images/chart3_knee_extrapolation.png)
+![Knee extrapolation](chart3_knee_extrapolation.png)
 
 Vì đã quan sát được điểm gãy thực sự (không còn nằm trong vùng plateau phẳng như log trước), một mô hình hồi quy **bậc 2 (quadratic)** khớp trên đoạn dữ liệu seq ≥ 650 cho kết quả:
 
@@ -78,7 +78,7 @@ R² = 0.9948
 
 ## 5. Dự đoán tổng vòng đời pin theo các ngưỡng cutoff
 
-![Dự đoán vòng đời](images/chart4_runtime_prediction.png)
+![Dự đoán vòng đời](chart4_runtime_prediction.png)
 
 | Ngưỡng "hết pin" | Tổng vòng đời (từ pin đầy) | Còn lại từ hiện tại (3320mV) |
 |---|---|---|
