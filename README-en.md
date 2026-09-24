@@ -21,12 +21,12 @@ Every peer must be flashed with this exact fixed profile: **920.250 MHz, 62.5 kH
 2. Install these libraries through Library Manager:
    - **RadioLib** 7.x;
    - **ArduinoJson** 7.x;
-   - **U8g2** for the Transmitter OLED.
+   - **U8g2** for the SSD1306 OLED on both the Transmitter and Gateway.
 3. Open the `.ino` file in each sketch directory with Arduino IDE.
 4. Select the appropriate EoRa-S3-900TB ESP32-S3 board/USB port and upload.
 5. Attach the correctly matched 50-ohm antenna before transmitting.
 
-The gateway must remain USB-powered. Connect its USB serial device (for example `/dev/ttyACM0`) at 115200 baud.
+The gateway must remain USB-powered. Connect its USB serial device (for example `/dev/ttyACM0`) at 115200 baud. For ESP32-S3 native USB, select **Tools → USB CDC On Boot → Enabled** before building/flashing; Gateway waits for Serial Monitor for at most 10 seconds.
 
 ### Confirmed build status
 
@@ -100,6 +100,12 @@ Example:
 
 On every cycle, DEBUG prints `SD init success` or `SD init failed`, then `SD write success`/`SD write failed` for each event, followed by `SD log summary` before deep sleep. Use these lines to verify that the card was mounted and records were actually written.
 
+## Gateway startup and display
+
+The Gateway uses an SSD1306 I²C OLED on SDA GPIO 18 and SCL GPIO 17. After flash/reboot, the OLED should show `BOOTING`, `RADIO READY`, `WIFI AP`, then `LISTENING` on the 920.250 MHz profile. A valid uplink updates it to `UPLINK`, the node ID, and the packet count.
+
+Gateway Serial remains newline-delimited JSON for Orange Pi parsing. Immediately after boot expect `gateway_boot`, `radio_ready`, `wifi_ap_ready` (with AP IP), and `radio_listening`; the relevant errors are `radio_init_failed`, `radio_receive_failed`, and `wifi_ap_failed`.
+
 ## Gateway serial protocol
 
 Gateway output is newline-delimited JSON only. Example uplink:
@@ -118,7 +124,7 @@ Supported commands are `ping`, `set_interval` (a positive `seconds` value is req
 
 ## Local gateway configuration
 
-The gateway starts a Wi-Fi AP using `gateway_config.h`; change the default AP password before deployment. Browse `http://192.168.4.1/diagnostics` for packet count, latest node/RSSI/SNR, queue count, and the fixed profile. `POST /reboot` restarts the gateway. The firmware intentionally provides no runtime route for changing radio parameters.
+The Gateway starts a Wi-Fi AP using `gateway_config.h`; change the default AP password before deployment. Browse `http://192.168.4.1/` for the auto-refreshing (every 3 seconds) diagnostics dashboard: LoRa status, packet count, latest node, RSSI, SNR, and queued-command count. `GET http://192.168.4.1/diagnostics` remains the JSON endpoint for automation. `POST /reboot` restarts the gateway. The firmware intentionally provides no runtime route for changing radio parameters.
 
 ## Testing
 

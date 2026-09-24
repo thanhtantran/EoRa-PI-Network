@@ -23,12 +23,12 @@ Trước khi phát RF, hãy xác nhận mức 22 dBm cùng hệ thống antenna/
 2. Cài các thư viện từ Library Manager:
    - **RadioLib** 7.x;
    - **ArduinoJson** 7.x;
-   - **U8g2** cho OLED của Transmitter.
+   - **U8g2** cho OLED SSD1306 của cả Transmitter và Gateway.
 3. Mở tệp `.ino` trong từng thư mục sketch bằng Arduino IDE.
 4. Chọn board/cổng USB phù hợp với EoRa-S3-900TB ESP32-S3 và upload.
 5. Gắn antenna 50-ohm phù hợp trước khi phát.
 
-Gateway phải luôn được cấp nguồn qua USB. Kết nối thiết bị serial USB của nó (ví dụ `/dev/ttyACM0`) ở baud rate 115200.
+Gateway phải luôn được cấp nguồn qua USB. Kết nối thiết bị serial USB của nó (ví dụ `/dev/ttyACM0`) ở baud rate 115200. Với ESP32-S3 native USB, phải chọn **Tools → USB CDC On Boot → Enabled** trước khi build/flash; Gateway chờ tối đa 10 giây để Serial Monitor kết nối.
 
 ### Trạng thái build đã xác nhận
 
@@ -102,6 +102,12 @@ Ví dụ:
 
 Mỗi chu kỳ, DEBUG sẽ in `SD init success` hoặc `SD init failed`, `SD write success`/`SD write failed` theo từng event, sau đó `SD log summary` trước deep sleep. Dùng các dòng này để xác nhận thẻ thực sự đã mount và ghi được log.
 
+## Gateway khởi động và hiển thị
+
+Gateway dùng OLED SSD1306 I²C trên SDA GPIO 18, SCL GPIO 17. Sau flash/reboot, OLED phải lần lượt hiện `BOOTING`, `RADIO READY`, `WIFI AP`, sau cùng là `LISTENING` ở profile 920.250 MHz. Khi nhận uplink hợp lệ, màn hình hiện `UPLINK`, node ID và tổng số packet.
+
+Serial Gateway vẫn là JSON Lines để Orange Pi có thể parse. Ngay sau boot mong đợi các event: `gateway_boot`, `radio_ready`, `wifi_ap_ready` (kèm IP AP) và `radio_listening`. Các lỗi tương ứng gồm `radio_init_failed`, `radio_receive_failed`, hoặc `wifi_ap_failed`.
+
 ## Giao thức Serial Gateway
 
 Gateway chỉ xuất JSON được phân tách theo dòng mới. Ví dụ uplink:
@@ -120,7 +126,7 @@ Các lệnh được hỗ trợ: `ping`, `set_interval` (bắt buộc `seconds` 
 
 ## Cấu hình gateway cục bộ
 
-Gateway khởi tạo Wi‑Fi AP từ `gateway_config.h`; phải đổi mật khẩu AP mặc định trước khi triển khai. Truy cập `http://192.168.4.1/diagnostics` để xem số gói, node/RSSI/SNR gần nhất, số lệnh đang chờ và profile cố định. `POST /reboot` sẽ khởi động lại gateway. Firmware cố ý không cung cấp route thay đổi tham số radio trong runtime.
+Gateway khởi tạo Wi‑Fi AP từ `gateway_config.h`; phải đổi mật khẩu AP mặc định trước khi triển khai. Truy cập `http://192.168.4.1/` để xem dashboard chẩn đoán tự làm mới mỗi 3 giây: trạng thái LoRa, số packet, node gần nhất, RSSI, SNR và số lệnh đang chờ. `GET http://192.168.4.1/diagnostics` vẫn trả JSON cho công cụ tự động. `POST /reboot` sẽ khởi động lại gateway. Firmware cố ý không cung cấp route thay đổi tham số radio trong runtime.
 
 ## Kiểm thử
 

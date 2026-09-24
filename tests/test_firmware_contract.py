@@ -62,9 +62,38 @@ class FirmwareContractTests(unittest.TestCase):
         self.assertIn("queue_command", source)
         self.assertIn('"command_sent"', source)
         self.assertIn("deserializeJson", source)
+        self.assertNotIn("StaticJsonDocument", source)
         self.assertNotIn("esp_deep_sleep_start", source)
         self.assertNotIn("startReceiveDutyCycleAuto", source)
         self.assertNotIn("KY002S", source)
+
+    def test_gateway_has_oled_and_json_boot_diagnostics(self) -> None:
+        source = self.read(GATEWAY / "EoRa_Node_Receiver_Gateway.ino")
+        self.assertIn("#include <U8g2lib.h>", source)
+        self.assertIn("#include <Wire.h>", source)
+        self.assertIn("OLED_SDA_PIN = 18", source)
+        self.assertIn("OLED_SCL_PIN = 17", source)
+        self.assertIn("initDisplay", source)
+        self.assertIn("showGatewayStatus", source)
+        self.assertIn('emitStatus("gateway_boot")', source)
+        self.assertIn('emitStatus("radio_ready")', source)
+        self.assertIn('emitStatus("wifi_ap_ready",', source)
+        self.assertIn('emitStatus("radio_listening")', source)
+        self.assertIn("waitForSerialConnection", source)
+        self.assertNotIn("while (!Serial) {}", source)
+
+    def test_gateway_root_is_auto_refreshing_html_diagnostics_dashboard(self) -> None:
+        source = self.read(GATEWAY / "EoRa_Node_Receiver_Gateway.ino")
+        self.assertIn("handleDashboard", source)
+        self.assertIn("text/html", source)
+        self.assertIn("fetch('/diagnostics')", source)
+        self.assertIn("setInterval(refresh, 3000)", source)
+        self.assertIn('"radio_status"', source)
+        self.assertIn('"packet_count"', source)
+        self.assertIn('"last_node_id"', source)
+        self.assertIn('"last_rssi"', source)
+        self.assertIn('"last_snr"', source)
+        self.assertIn('"queued_commands"', source)
 
     def test_protocol_rejects_non_matching_commands(self) -> None:
         for protocol in (NODE / "protocol.h", GATEWAY / "protocol.h"):
