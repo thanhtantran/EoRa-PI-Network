@@ -66,6 +66,11 @@ class FirmwareContractTests(unittest.TestCase):
         self.assertNotIn("esp_deep_sleep_start", source)
         self.assertNotIn("startReceiveDutyCycleAuto", source)
         self.assertNotIn("KY002S", source)
+        self.assertIn("radio.setDio1Action", source)
+        self.assertIn("radio.readData", source)
+        self.assertIn("crc_mismatch", source)
+        self.assertIn("invalid_uplink", source)
+        self.assertNotIn("radio.receive(frame, 20)", source)
 
     def test_gateway_has_oled_and_json_boot_diagnostics(self) -> None:
         source = self.read(GATEWAY / "EoRa_Node_Receiver_Gateway.ino")
@@ -105,6 +110,9 @@ class FirmwareContractTests(unittest.TestCase):
     def test_node_uses_radiolib_and_arduinojson_7_compatible_arguments(self) -> None:
         source = self.read(NODE / "EoRa_Node_Transmitter.ino")
         self.assertIn("bool transmitUplink(String& uplink)", source)
+        self.assertIn("const int state = radio.transmit(uplink)", source)
+        self.assertIn("TX successful: state=0", source)
+        self.assertIn("TX failed: state=%d", source)
         self.assertIn("bool readSensors(JsonObject data)", source)
         self.assertIn('packet["data"].to<JsonObject>()', source)
         self.assertNotIn("createNestedObject(\"data\")", source)

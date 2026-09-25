@@ -74,6 +74,12 @@ Trạng thái cuối ACK/CMD/TIMEOUT/RX ERROR được giữ khoảng một giâ
 
 > Battery estimate hiện dùng công thức mẫu cho GPIO 1. Cần hiệu chuẩn theo mạch chia áp/battery thực tế trước khi dùng giá trị này làm số liệu đo chính xác.
 
+### Các chân sensor mở rộng
+
+Không đồng nhất **GPIO số** với **số chân vật lý header**. Theo Pin Mapping Guide có trong repository, `GPIO10` là ADC1_CH9 và `GPIO21` là GPIO số, nhưng tài liệu này không chứng minh chúng được breakout ra header trên EoRa-S3-900TB. Trong cùng sơ đồ, **header pin 21 là GPIO33/DIO1 của LoRa**, tuyệt đối không dùng cho sensor.
+
+Trước khi thêm sensor, xác nhận tên net/silkscreen hoặc schematic cho đúng revision board. Khi GPIO thực sự available, khai báo rõ `constexpr uint8_t SENSOR_PIN = <gpio>;`, đặt `pinMode()` trong `enableSensorPower()`/`setup()`, đọc input trong `readSensors()`, rồi thêm giá trị vào `data`. GPIO10 có thể đọc analog với `analogRead(10)`; GPIO21 chỉ dùng digital với `digitalRead(21)` (không có ADC). Không cấp quá 3.3 V vào ESP32-S3 GPIO.
+
 ## Nhật ký microSD của Transmitter
 
 Transmitter hỗ trợ ghi nhật ký chu kỳ wake vào `/wake_log.csv` trên thẻ **microSD/TF định dạng FAT32**. Mapping được lấy từ firmware legacy và cần được kiểm tra với thẻ vật lý: MOSI GPIO 11, MISO GPIO 2, SCLK GPIO 14, CS GPIO 13. Node dùng `HSPI` riêng cho thẻ, không dùng chung SPI của SX1262.

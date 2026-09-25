@@ -203,13 +203,16 @@ bool transmitUplink(String& uplink) {
   for (uint8_t attempt = 0; attempt < MAX_UPLINK_ATTEMPTS; ++attempt) {
     showStatus("TX");
     debugf("TX attempt %u/%u, %u bytes\n", attempt + 1, MAX_UPLINK_ATTEMPTS, uplink.length());
-    if (radio.transmit(uplink) == RADIOLIB_ERR_NONE) {
-      debugf("TX successful\n");
-      logWakeEvent("tx_success", "attempt=" + String(attempt + 1) + ";bytes=" + String(uplink.length()));
+    const uint32_t airtimeMs = radio.getTimeOnAir(uplink.length());
+    const int state = radio.transmit(uplink);
+    if (state == RADIOLIB_ERR_NONE) {
+      debugf("TX successful: state=0; airtime_ms=%lu\n", static_cast<unsigned long>(airtimeMs));
+      logWakeEvent("tx_success", "attempt=" + String(attempt + 1) + ";bytes=" +
+          String(uplink.length()) + ";airtime_ms=" + String(airtimeMs));
       return true;
     }
-    debugf("TX failed\n");
-    logWakeEvent("tx_attempt_failed", "attempt=" + String(attempt + 1));
+    debugf("TX failed: state=%d\n", state);
+    logWakeEvent("tx_attempt_failed", "attempt=" + String(attempt + 1) + ";state=" + String(state));
     delay(random(100, 501));
   }
   showStatus("TX FAILED");

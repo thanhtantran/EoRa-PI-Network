@@ -33,6 +33,12 @@ String lastNodeId;
 float lastRssi = 0;
 float lastSnr = 0;
 String radioStatus = "booting";
+volatile bool receivedFlag = false;
+volatile bool receiveInterruptEnabled = false;
+
+void IRAM_ATTR onRadioReceive() {
+  if (receiveInterruptEnabled) receivedFlag = true;
+}
 
 void initDisplay() {
   Wire.begin(OLED_SDA_PIN, OLED_SCL_PIN);
@@ -75,6 +81,14 @@ void emitError(const char* code) {
   JsonDocument response;
   response["event"] = "error";
   response["code"] = code;
+  emitJson(response);
+}
+
+void emitReceiveError(const char* code, int state) {
+  JsonDocument response;
+  response["event"] = "rx_error";
+  response["code"] = code;
+  response["radio_state"] = state;
   emitJson(response);
 }
 
@@ -142,7 +156,7 @@ void sendAck(const char* id, uint32_t sequence) {
   ack["seq"] = sequence;
   String frame;
   serializeJson(ack, frame);
-  radio.transmit(frame);
+  if (radio.transmit(frame) != RADIOLIB_ERR_NONE) emitError("ack_transmit_failed");
 }
 
 void sendQueuedCommand(const char* id, uint32_t sequence) {
@@ -170,13 +184,45 @@ void sendQueuedCommand(const char* id, uint32_t sequence) {
   }
 }
 
+bool armReceiver() {
+  receiveInterruptEnabled = false;
+  receivedFlag = false;
+  radio.setDio1Action(onRadioReceive);
+  const int state = radio.startReceive();
+  if (state != RADIOLIB_ERR_NONE) {
+    radioStatus = "radio_receive_failed";
+    emitReceiveError("radio_receive_failed", state);
+    return false;
+  }
+  radioStatus = "listening";
+  receiveInterruptEnabled = true;
+  return true;
+}
+
 void handleUplink() {
+  if (!receivedFlag) return;
+  receiveInterruptEnabled = false;
+  receivedFlag = false;
   String frame;
-  if (radio.receive(frame, 20) != RADIOLIB_ERR_NONE) return;
+  const int receiveState = radio.readData(frame);
+  if (receiveState == RADIOLIB_ERR_CRC_MISMATCH) {
+    emitReceiveError("crc_mismatch", receiveState);
+    armReceiver();
+    return;
+  }
+  if (receiveState != RADIOLIB_ERR_NONE) {
+    emitReceiveError("rx_read_failed", receiveState);
+    armReceiver();
+    return;
+  }
   JsonDocument packet;
   if (deserializeJson(packet, frame) != DeserializationError::Ok ||
       packet["v"] != PROTOCOL_VERSION || strcmp(packet["type"] | "", "uplink") != 0 ||
-      !isValidNodeId(packet["id"] | "") || frame.length() > MAX_LORA_FRAME_BYTES) return;
+      !isValidNodeId(packet["id"] | "") || frame.length() > MAX_LORA_FRAME_BYTES) {
+    emitReceiveError("invalid_uplink", RADIOLIB_ERR_NONE);
+    armReceiver();
+    return;
+  }
 
   const char* id = packet["id"];
   const uint32_t sequence = packet["seq"] | 0;
@@ -194,7 +240,7 @@ void handleUplink() {
 
   sendAck(id, sequence);
   sendQueuedCommand(id, sequence);
-  radio.startReceive();
+  armReceiver();
 }
 
 void handleDashboard() {
@@ -257,14 +303,11 @@ void setup() {
   emitStatus("radio_ready");
   showGatewayStatus("RADIO READY");
   setupConfigurationServer();
-  if (radio.startReceive() != RADIOLIB_ERR_NONE) {
-    radioStatus = "radio_receive_failed";
-    emitError("radio_receive_failed");
+  if (!armReceiver()) {
     showGatewayStatus("RX ERROR");
     return;
   }
   emitStatus("radio_listening");
-  radioStatus = "listening";
   showGatewayStatus("LISTENING", "920.250 MHz");
 }
 

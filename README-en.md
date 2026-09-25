@@ -72,6 +72,12 @@ The final ACK/CMD/TIMEOUT/RX ERROR status remains visible for roughly one second
 
 > The current battery estimate is a GPIO 1 sample formula. Calibrate it to the actual battery divider before treating it as an accurate measurement.
 
+### Extended sensor pins
+
+Do not confuse a **GPIO number** with a physical header-pin number. The Pin Mapping Guide in this repository lists `GPIO10` as ADC1_CH9 and `GPIO21` as a digital GPIO, but does not prove that either is broken out on the EoRa-S3-900TB header. In the same mapping, **physical header pin 21 is GPIO33/LoRa DIO1**, which must never be used for a sensor.
+
+Before adding a sensor, confirm the net/silkscreen or schematic for the exact board revision. When the chosen GPIO is physically available, declare `constexpr uint8_t SENSOR_PIN = <gpio>;`, set `pinMode()` in `enableSensorPower()`/`setup()`, read it in `readSensors()`, then add the result to `data`. GPIO10 can be read as analog with `analogRead(10)`; GPIO21 is digital-only via `digitalRead(21)` (no ADC). Never exceed 3.3 V on ESP32-S3 GPIOs.
+
 ## Transmitter microSD logging
 
 The Transmitter can record each wake cycle to `/wake_log.csv` on a **FAT32-formatted microSD/TF card**. Pin mapping comes from the legacy firmware and must be validated with a physical card: MOSI GPIO 11, MISO GPIO 2, SCLK GPIO 14, and CS GPIO 13. The node uses a dedicated `HSPI` bus for the card and does not share the SX1262 SPI bus.
